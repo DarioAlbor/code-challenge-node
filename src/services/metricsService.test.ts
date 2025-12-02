@@ -38,6 +38,25 @@ describe("metricsService", () => {
 			const result = calculateMeanUnitsSold(books);
 			expect(result).toBe(125);
 		});
+
+		it("debe manejar números muy grandes sin perder precisión", () => {
+			const books: Book[] = [
+				{ id: 1, name: "Book", author: "Author", unitsSold: 999999999, price: 10 },
+				{ id: 2, name: "Book", author: "Author", unitsSold: 1, price: 10 },
+			];
+			const result = calculateMeanUnitsSold(books);
+			expect(result).toBe(500000000);
+		});
+
+		it("debe manejar múltiples libros con ventas muy variadas", () => {
+			const books: Book[] = [
+				{ id: 1, name: "Book", author: "Author", unitsSold: 1000000, price: 10 },
+				{ id: 2, name: "Book", author: "Author", unitsSold: 1, price: 10 },
+				{ id: 3, name: "Book", author: "Author", unitsSold: 500000, price: 10 },
+			];
+			const result = calculateMeanUnitsSold(books);
+			expect(result).toBeCloseTo(500000.33, 2);
+		});
 	});
 
 	describe("findCheapestBook", () => {
@@ -65,6 +84,35 @@ describe("metricsService", () => {
 			];
 			const result = findCheapestBook(books);
 			expect(result).toEqual(books[0]);
+		});
+
+		it("debe manejar precios con decimales", () => {
+			const books: Book[] = [
+				{ id: 1, name: "Book", author: "Author", unitsSold: 100, price: 10.99 },
+				{ id: 2, name: "Book", author: "Author", unitsSold: 100, price: 10.50 },
+				{ id: 3, name: "Book", author: "Author", unitsSold: 100, price: 11.00 },
+			];
+			const result = findCheapestBook(books);
+			expect(result?.price).toBe(10.50);
+		});
+
+		it("debe manejar precio 0 como válido", () => {
+			const books: Book[] = [
+				{ id: 1, name: "Free Book", author: "Author", unitsSold: 100, price: 0 },
+				{ id: 2, name: "Paid Book", author: "Author", unitsSold: 100, price: 10 },
+			];
+			const result = findCheapestBook(books);
+			expect(result?.price).toBe(0);
+			expect(result?.name).toBe("Free Book");
+		});
+
+		it("debe manejar precios muy altos", () => {
+			const books: Book[] = [
+				{ id: 1, name: "Expensive", author: "Author", unitsSold: 100, price: 99999.99 },
+				{ id: 2, name: "Super Expensive", author: "Author", unitsSold: 100, price: 199999.99 },
+			];
+			const result = findCheapestBook(books);
+			expect(result?.price).toBe(99999.99);
 		});
 	});
 
@@ -116,6 +164,78 @@ describe("metricsService", () => {
 			const result = filterBooksByAuthor(booksWithMultipleByAuthor, "J.R.R. Tolkien");
 			expect(result).toHaveLength(3);
 			expect(result).toEqual(["Book A", "Book C", "Book D"]);
+		});
+	});
+
+	describe("Performance Tests", () => {
+		it("debe calcular métricas rápidamente con 1000 libros", () => {
+			const manyBooks: Book[] = Array.from({ length: 1000 }, (_, i) => ({
+				id: i,
+				name: `Book ${i}`,
+				author: `Author ${i % 10}`,
+				unitsSold: Math.floor(Math.random() * 10000),
+				price: Math.floor(Math.random() * 100),
+			}));
+
+			const start = performance.now();
+			calculateMeanUnitsSold(manyBooks);
+			findCheapestBook(manyBooks);
+			filterBooksByAuthor(manyBooks, "Author 1");
+			const end = performance.now();
+
+			expect(end - start).toBeLessThan(100);
+		});
+
+		it("debe manejar 10000 libros sin problemas de memoria", () => {
+			const manyBooks: Book[] = Array.from({ length: 10000 }, (_, i) => ({
+				id: i,
+				name: `Book ${i}`,
+				author: `Author ${i % 100}`,
+				unitsSold: Math.floor(Math.random() * 10000),
+				price: Math.floor(Math.random() * 100),
+			}));
+
+			const start = performance.now();
+			const mean = calculateMeanUnitsSold(manyBooks);
+			const cheapest = findCheapestBook(manyBooks);
+			const filtered = filterBooksByAuthor(manyBooks, "Author 50");
+			const end = performance.now();
+
+			expect(mean).toBeGreaterThan(0);
+			expect(cheapest).not.toBeNull();
+			expect(filtered.length).toBeGreaterThan(0);
+			expect(end - start).toBeLessThan(500);
+		});
+
+		it("debe ser eficiente con filtrado de muchos libros del mismo autor", () => {
+			const manyBooks: Book[] = Array.from({ length: 5000 }, (_, i) => ({
+				id: i,
+				name: `Book ${i}`,
+				author: "Popular Author",
+				unitsSold: Math.floor(Math.random() * 10000),
+				price: Math.floor(Math.random() * 100),
+			}));
+
+			const start = performance.now();
+			const filtered = filterBooksByAuthor(manyBooks, "Popular Author");
+			const end = performance.now();
+
+			expect(filtered).toHaveLength(5000);
+			expect(end - start).toBeLessThan(100);
+		});
+
+		it("debe calcular media con dataset grande sin overflow", () => {
+			const manyBooks: Book[] = Array.from({ length: 100 }, (_, i) => ({
+				id: i,
+				name: `Book ${i}`,
+				author: "Author",
+				unitsSold: 1000000,
+				price: 10,
+			}));
+
+			const result = calculateMeanUnitsSold(manyBooks);
+			expect(result).toBe(1000000);
+			expect(Number.isFinite(result)).toBe(true);
 		});
 	});
 });

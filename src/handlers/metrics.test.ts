@@ -151,5 +151,71 @@ describe("metricsHandler", () => {
 			expect(response.metrics.books_written_by_author).toHaveLength(3);
 		});
 	});
+
+	describe("Query Parameters Validation", () => {
+		it("debe manejar author vacío retornando todos los nombres", async () => {
+			mockReq.query = { author: "" };
+
+			await handler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			const response = jsonMock.mock.calls[0][0];
+			expect(response.metrics.books_written_by_author).toEqual(["Book 1", "Book 2", "Book 3"]);
+		});
+
+		it("debe manejar espacios en blanco en author", async () => {
+			mockReq.query = { author: "   " };
+
+			await handler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			expect(statusMock).toHaveBeenCalledWith(200);
+			expect(jsonMock.mock.calls[0][0].metrics.books_written_by_author).toEqual([]);
+		});
+
+		it("debe manejar caracteres especiales en author", async () => {
+			const specialCharsProvider: BooksProvider = {
+				getBooks: vi.fn().mockResolvedValue([
+					{ id: 1, name: "Book", author: "O'Brien", unitsSold: 100, price: 20 },
+				]),
+			};
+			const specialHandler = metricsHandler(specialCharsProvider);
+
+			mockReq.query = { author: "O'Brien" };
+			await specialHandler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			expect(statusMock).toHaveBeenCalledWith(200);
+			expect(jsonMock.mock.calls[0][0].metrics.books_written_by_author).toEqual(["Book"]);
+		});
+
+		it("debe manejar author con múltiples palabras", async () => {
+			const multiWordProvider: BooksProvider = {
+				getBooks: vi.fn().mockResolvedValue([
+					{ id: 1, name: "Book 1", author: "J.R.R. Tolkien", unitsSold: 100, price: 20 },
+					{ id: 2, name: "Book 2", author: "C.S. Lewis", unitsSold: 200, price: 15 },
+				]),
+			};
+			const multiWordHandler = metricsHandler(multiWordProvider);
+
+			mockReq.query = { author: "J.R.R. Tolkien" };
+			await multiWordHandler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			expect(statusMock).toHaveBeenCalledWith(200);
+			expect(jsonMock.mock.calls[0][0].metrics.books_written_by_author).toEqual(["Book 1"]);
+		});
+
+		it("debe manejar author con acentos y caracteres Unicode", async () => {
+			const unicodeProvider: BooksProvider = {
+				getBooks: vi.fn().mockResolvedValue([
+					{ id: 1, name: "Libro", author: "José María", unitsSold: 100, price: 20 },
+				]),
+			};
+			const unicodeHandler = metricsHandler(unicodeProvider);
+
+			mockReq.query = { author: "José María" };
+			await unicodeHandler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			expect(statusMock).toHaveBeenCalledWith(200);
+			expect(jsonMock.mock.calls[0][0].metrics.books_written_by_author).toEqual(["Libro"]);
+		});
+	});
 });
 
