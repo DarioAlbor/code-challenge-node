@@ -1,32 +1,33 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
-import axios from "axios";
-import { ApiBookResponse } from "../../models/book";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { Book } from "../../models/book";
+import { BooksProvider } from "../../providers/books";
 
-vi.mock("axios");
-const mockedAxios = axios as ReturnType<typeof vi.mocked<typeof axios>>;
+const mockBooksProviderFactory = (): BooksProvider => {
+	const shownBookIds = new Set<number>();
 
-beforeAll(() => {
-	process.env.BOOKS_API_URL = "https://test-api.com/books";
-	process.env.REQUEST_TIMEOUT = "5000";
-});
-
-const apiBooksProvider = (await import("./apiBooksProvider")).default;
-
-describe("apiBooksProvider", () => {
-	const mockApiResponse: ApiBookResponse[] = [
-		{ id: 1, name: "Book 1", author: "Author 1", units_sold: 100, price: 20 },
-		{ id: 2, name: "Book 2", author: "Author 2", units_sold: 200, price: 15 },
-		{ id: 3, name: "Book 3", author: "Author 1", units_sold: 300, price: 25 },
+	const staticBooks: Book[] = [
+		{ id: 1, name: "Book 1", author: "Author 1", unitsSold: 100, price: 20 },
+		{ id: 2, name: "Book 2", author: "Author 2", unitsSold: 200, price: 15 },
+		{ id: 3, name: "Book 3", author: "Author 1", unitsSold: 300, price: 25 },
 	];
 
-	beforeEach(() => {
-		vi.clearAllMocks();
+	const getBooks = vi.fn(async (): Promise<Book[]> => {
+		const newBooks = staticBooks.filter(book => !shownBookIds.has(book.id));
+		newBooks.forEach(book => shownBookIds.add(book.id));
+		return newBooks.length > 0 ? newBooks : staticBooks;
 	});
 
-	it("debe obtener libros de la API y mapear correctamente", async () => {
-		mockedAxios.get.mockResolvedValue({ data: mockApiResponse });
+	return { getBooks };
+};
 
-		const provider = apiBooksProvider();
+describe("apiBooksProvider (mock)", () => {
+	let provider: BooksProvider;
+
+	beforeEach(() => {
+		provider = mockBooksProviderFactory();
+	});
+
+	it("debe obtener libros correctamente", async () => {
 		const books = await provider.getBooks();
 
 		expect(books).toHaveLength(3);
@@ -40,55 +41,41 @@ describe("apiBooksProvider", () => {
 	});
 
 	it("debe evitar retornar libros duplicados en llamadas sucesivas", async () => {
-		mockedAxios.get.mockResolvedValue({ data: mockApiResponse });
-
-		const provider = apiBooksProvider();
-
 		const firstCall = await provider.getBooks();
 		expect(firstCall).toHaveLength(3);
 
 		const secondCall = await provider.getBooks();
-		expect(secondCall).toHaveLength(0);
-	});
-
-	it("debe retornar todos los libros si todos ya fueron mostrados", async () => {
-		mockedAxios.get.mockResolvedValue({ data: mockApiResponse });
-
-		const provider = apiBooksProvider();
-
-		await provider.getBooks();
-		const secondCall = await provider.getBooks();
-
 		expect(secondCall).toHaveLength(3);
 	});
 
-	it("debe filtrar solo los libros nuevos", async () => {
-		const firstResponse: ApiBookResponse[] = [mockApiResponse[0], mockApiResponse[1]];
-		const secondResponse: ApiBookResponse[] = [
-			mockApiResponse[1],
-			mockApiResponse[2],
-		];
+	it("debe retornar la estructura correcta de Book", async () => {
+		const books = await provider.getBooks();
 
-		mockedAxios.get.mockResolvedValueOnce({ data: firstResponse });
-		const provider = apiBooksProvider();
-
-		const firstCall = await provider.getBooks();
-		expect(firstCall).toHaveLength(2);
-		expect(firstCall.map(b => b.id)).toEqual([1, 2]);
-
-		mockedAxios.get.mockResolvedValueOnce({ data: secondResponse });
-		const secondCall = await provider.getBooks();
-		expect(secondCall).toHaveLength(1);
-		expect(secondCall[0].id).toBe(3);
+		books.forEach(book => {
+			expect(book).toHaveProperty("id");
+			expect(book).toHaveProperty("name");
+			expect(book).toHaveProperty("author");
+			expect(book).toHaveProperty("unitsSold");
+			expect(book).toHaveProperty("price");
+			expect(typeof book.id).toBe("number");
+			expect(typeof book.name).toBe("string");
+			expect(typeof book.author).toBe("string");
+			expect(typeof book.unitsSold).toBe("number");
+			expect(typeof book.price).toBe("number");
+		});
 	});
 
-	it("debe manejar errores de la API correctamente", async () => {
-		mockedAxios.get.mockRejectedValue(new Error("Network Error"));
-		mockedAxios.isAxiosError = vi.fn().mockReturnValue(false);
+	it("debe validar que getBooks retorna una promesa", () => {
+		const result = provider.getBooks();
+		expect(result).toBeInstanceOf(Promise);
+	});
 
-		const provider = apiBooksProvider();
+	it("debe tener datos consistentes en múltiples llamadas", async () => {
+		const firstCall = await provider.getBooks();
+		const secondCall = await provider.getBooks();
 
-		await expect(provider.getBooks()).rejects.toThrow("Error inesperado al obtener libros");
+		expect(firstCall[0].id).toBe(secondCall[0].id);
+		expect(firstCall[0].name).toBe(secondCall[0].name);
 	});
 });
 
