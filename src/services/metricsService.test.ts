@@ -105,6 +105,18 @@ describe("metricsService", () => {
 				expect(typeof item).toBe("string");
 			});
 		});
+
+		it("debe filtrar correctamente múltiples libros del mismo autor", () => {
+			const booksWithMultipleByAuthor: Book[] = [
+				{ id: 1, name: "Book A", author: "J.R.R. Tolkien", unitsSold: 100, price: 20 },
+				{ id: 2, name: "Book B", author: "C.S. Lewis", unitsSold: 200, price: 15 },
+				{ id: 3, name: "Book C", author: "J.R.R. Tolkien", unitsSold: 300, price: 25 },
+				{ id: 4, name: "Book D", author: "J.R.R. Tolkien", unitsSold: 150, price: 18 },
+			];
+			const result = filterBooksByAuthor(booksWithMultipleByAuthor, "J.R.R. Tolkien");
+			expect(result).toHaveLength(3);
+			expect(result).toEqual(["Book A", "Book C", "Book D"]);
+		});
 	});
 });
 

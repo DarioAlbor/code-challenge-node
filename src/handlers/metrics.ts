@@ -22,7 +22,8 @@ const metricsHandler = (booksProvider: BooksProvider) => {
 
 			const meanUnitsSold = calculateMeanUnitsSold(books);
 			const cheapestBook = findCheapestBook(books);
-			const booksWrittenByAuthor = author ? filterBooksByAuthor(books, author) : [];
+			const allBookNames = books.map(book => book.name);
+			const booksWrittenByAuthor = author ? filterBooksByAuthor(books, author) : allBookNames;
 
 			res.status(200).json({
 				books: books,

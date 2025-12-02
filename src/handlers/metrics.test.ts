@@ -47,7 +47,7 @@ describe("metricsHandler", () => {
 				metrics: {
 					mean_units_sold: 200,
 					cheapest_book: mockBooks[1],
-					books_written_by_author: [],
+					books_written_by_author: ["Book 1", "Book 2", "Book 3"],
 				},
 			});
 		});
@@ -133,6 +133,22 @@ describe("metricsHandler", () => {
 					books_written_by_author: [],
 				},
 			});
+		});
+
+		it("debe retornar todos los nombres de libros cuando no hay filtro de autor", async () => {
+			await handler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			const response = jsonMock.mock.calls[0][0];
+			expect(response.metrics.books_written_by_author).toEqual(["Book 1", "Book 2", "Book 3"]);
+		});
+
+		it("debe calcular métricas sobre todos los libros disponibles", async () => {
+			await handler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
+
+			const response = jsonMock.mock.calls[0][0];
+			expect(response.books).toHaveLength(3);
+			expect(response.metrics.mean_units_sold).toBe(200);
+			expect(response.metrics.books_written_by_author).toHaveLength(3);
 		});
 	});
 });

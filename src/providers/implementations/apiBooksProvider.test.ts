@@ -1,10 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
 import axios from "axios";
-import apiBooksProvider from "./apiBooksProvider";
 import { ApiBookResponse } from "../../models/book";
 
 vi.mock("axios");
 const mockedAxios = axios as ReturnType<typeof vi.mocked<typeof axios>>;
+
+beforeAll(() => {
+	process.env.BOOKS_API_URL = "https://test-api.com/books";
+	process.env.REQUEST_TIMEOUT = "5000";
+});
+
+const apiBooksProvider = (await import("./apiBooksProvider")).default;
 
 describe("apiBooksProvider", () => {
 	const mockApiResponse: ApiBookResponse[] = [
