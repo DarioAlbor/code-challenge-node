@@ -19,8 +19,10 @@ export const findCheapestBook = (books: Book[]): Book | null => {
 	}, books[0]);
 };
 
-export const filterBooksByAuthor = (books: Book[], author: string): Book[] => {
+export const filterBooksByAuthor = (books: Book[], author: string): string[] => {
 	const authorLowerCase = author.toLowerCase();
-	return books.filter(book => book.author.toLowerCase() === authorLowerCase);
+	return books
+		.filter(book => book.author.toLowerCase() === authorLowerCase)
+		.map(book => book.name);
 };
 

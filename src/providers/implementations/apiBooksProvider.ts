@@ -10,6 +10,8 @@ if (!API_URL) {
 }
 
 const apiBooksProvider = (): BooksProvider => {
+	const shownBookIds = new Set<number>();
+
 	const mapApiResponseToBook = (apiBook: ApiBookResponse): Book => {
 		return {
 			id: apiBook.id,
@@ -26,7 +28,12 @@ const apiBooksProvider = (): BooksProvider => {
 				timeout: REQUEST_TIMEOUT,
 			});
 
-			return response.data.map(mapApiResponseToBook);
+			const allBooks = response.data.map(mapApiResponseToBook);
+			const newBooks = allBooks.filter(book => !shownBookIds.has(book.id));
+
+			newBooks.forEach(book => shownBookIds.add(book.id));
+
+			return newBooks.length > 0 ? newBooks : allBooks;
 		} catch (error) {
 			if (axios.isAxiosError(error)) {
 				const axiosError = error as AxiosError;

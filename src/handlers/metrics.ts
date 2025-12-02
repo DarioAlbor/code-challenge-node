@@ -25,18 +25,24 @@ const metricsHandler = (booksProvider: BooksProvider) => {
 			const booksWrittenByAuthor = author ? filterBooksByAuthor(books, author) : [];
 
 			res.status(200).json({
-				mean_units_sold: meanUnitsSold,
-				cheapest_book: cheapestBook,
-				books_written_by_author: booksWrittenByAuthor,
+				books: books,
+				metrics: {
+					mean_units_sold: meanUnitsSold,
+					cheapest_book: cheapestBook,
+					books_written_by_author: booksWrittenByAuthor,
+				},
 			});
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : "Error desconocido";
 			console.error("Error al procesar métricas:", errorMessage);
 
 			res.status(500).json({
-				mean_units_sold: 0,
-				cheapest_book: null,
-				books_written_by_author: [],
+				books: [],
+				metrics: {
+					mean_units_sold: 0,
+					cheapest_book: null,
+					books_written_by_author: [],
+				},
 			});
 		}
 	};

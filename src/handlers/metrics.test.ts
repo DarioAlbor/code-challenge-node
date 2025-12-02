@@ -37,19 +37,22 @@ describe("metricsHandler", () => {
 	});
 
 	describe("get", () => {
-		it("debe retornar métricas sin query de autor", async () => {
+		it("debe retornar books y métricas sin query de autor", async () => {
 			await handler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
 
 			expect(mockBooksProvider.getBooks).toHaveBeenCalled();
 			expect(statusMock).toHaveBeenCalledWith(200);
 			expect(jsonMock).toHaveBeenCalledWith({
-				mean_units_sold: 200,
-				cheapest_book: mockBooks[1],
-				books_written_by_author: [],
+				books: mockBooks,
+				metrics: {
+					mean_units_sold: 200,
+					cheapest_book: mockBooks[1],
+					books_written_by_author: [],
+				},
 			});
 		});
 
-		it("debe retornar métricas con filtro por autor", async () => {
+		it("debe retornar books y métricas con filtro por autor", async () => {
 			mockReq.query = { author: "Author 1" };
 
 			await handler.get(mockReq as Request, mockRes as Response<MetricsResponse>);
@@ -57,9 +60,12 @@ describe("metricsHandler", () => {
 			expect(mockBooksProvider.getBooks).toHaveBeenCalled();
 			expect(statusMock).toHaveBeenCalledWith(200);
 			expect(jsonMock).toHaveBeenCalledWith({
-				mean_units_sold: 200,
-				cheapest_book: mockBooks[1],
-				books_written_by_author: [mockBooks[0], mockBooks[2]],
+				books: mockBooks,
+				metrics: {
+					mean_units_sold: 200,
+					cheapest_book: mockBooks[1],
+					books_written_by_author: ["Book 1", "Book 3"],
+				},
 			});
 		});
 
@@ -70,7 +76,9 @@ describe("metricsHandler", () => {
 
 			expect(jsonMock).toHaveBeenCalledWith(
 				expect.objectContaining({
-					books_written_by_author: [mockBooks[0], mockBooks[2]],
+					metrics: expect.objectContaining({
+						books_written_by_author: ["Book 1", "Book 3"],
+					}),
 				})
 			);
 		});
@@ -85,9 +93,12 @@ describe("metricsHandler", () => {
 
 			expect(statusMock).toHaveBeenCalledWith(500);
 			expect(jsonMock).toHaveBeenCalledWith({
-				mean_units_sold: 0,
-				cheapest_book: null,
-				books_written_by_author: [],
+				books: [],
+				metrics: {
+					mean_units_sold: 0,
+					cheapest_book: null,
+					books_written_by_author: [],
+				},
 			});
 		});
 
@@ -98,7 +109,9 @@ describe("metricsHandler", () => {
 
 			expect(jsonMock).toHaveBeenCalledWith(
 				expect.objectContaining({
-					books_written_by_author: [],
+					metrics: expect.objectContaining({
+						books_written_by_author: [],
+					}),
 				})
 			);
 		});
@@ -113,9 +126,12 @@ describe("metricsHandler", () => {
 
 			expect(statusMock).toHaveBeenCalledWith(200);
 			expect(jsonMock).toHaveBeenCalledWith({
-				mean_units_sold: 0,
-				cheapest_book: null,
-				books_written_by_author: [],
+				books: [],
+				metrics: {
+					mean_units_sold: 0,
+					cheapest_book: null,
+					books_written_by_author: [],
+				},
 			});
 		});
 	});

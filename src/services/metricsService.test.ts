@@ -69,16 +69,16 @@ describe("metricsService", () => {
 	});
 
 	describe("filterBooksByAuthor", () => {
-		it("debe filtrar libros por autor correctamente", () => {
+		it("debe filtrar libros por autor y retornar solo los nombres", () => {
 			const result = filterBooksByAuthor(mockBooks, "Author 1");
 			expect(result).toHaveLength(2);
-			expect(result).toEqual([mockBooks[0], mockBooks[2]]);
+			expect(result).toEqual(["Book 1", "Book 3"]);
 		});
 
 		it("debe ser case-insensitive", () => {
 			const result = filterBooksByAuthor(mockBooks, "AUTHOR 1");
 			expect(result).toHaveLength(2);
-			expect(result).toEqual([mockBooks[0], mockBooks[2]]);
+			expect(result).toEqual(["Book 1", "Book 3"]);
 		});
 
 		it("debe retornar lista vacía cuando no hay coincidencias", () => {
@@ -93,10 +93,17 @@ describe("metricsService", () => {
 			expect(result).toEqual([]);
 		});
 
-		it("debe filtrar con coincidencia parcial de mayúsculas/minúsculas", () => {
+		it("debe filtrar con coincidencia parcial de mayúsculas/minúsculas y retornar solo el nombre", () => {
 			const result = filterBooksByAuthor(mockBooks, "author 2");
 			expect(result).toHaveLength(1);
-			expect(result).toEqual([mockBooks[1]]);
+			expect(result).toEqual(["Book 2"]);
+		});
+
+		it("debe retornar solo strings con los nombres de los libros", () => {
+			const result = filterBooksByAuthor(mockBooks, "Author 1");
+			result.forEach(item => {
+				expect(typeof item).toBe("string");
+			});
 		});
 	});
 });
